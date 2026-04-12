@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Software de simulación  interactiva SimuMetalurgia © | Módulo de Tracción ASTM</title>
+    
+    <script>
+        MathJax = {
+          tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --primary: #003366; --secondary: #111111; --accent: #dc2626;
+            --bg: #f8fafc; --surface: #ffffff; --text: #0f172a; --border: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background-color: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* HEADER Y NAVEGACIÓN PRINCIPAL */
+        header { background: linear-gradient(135deg, var(--secondary), var(--primary)); color: white; padding: 25px 20px 25px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 20; }
+        header .uis-tag { font-weight: 900; background: var(--accent); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; letter-spacing: 1px; display: inline-block; margin-bottom: 10px;}
+        header h1 { margin: 0; font-size: 2em; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);}
+
+        .top-nav { background: var(--surface); padding: 15px; display: flex; justify-content: center; gap: 15px; border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); z-index: 15; }
+        .nav-btn { background: var(--bg); border: 1px solid var(--border); color: #475569; padding: 10px 25px; border-radius: 30px; cursor: pointer; font-weight: 800; font-size: 0.9em; text-transform: uppercase; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-decoration: none; display: inline-block; }
+        .nav-btn:hover { background: #e2e8f0; transform: translateY(-2px); color: var(--primary); }
+        .nav-btn.active-btn { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,51,102,0.3);}
+        .nav-btn.sim-btn { background: var(--accent); color: white; border-color: var(--accent); }
+        .nav-btn.sim-btn:hover { background: #be123c; box-shadow: 0 4px 12px rgba(220,38,38,0.4); color: white;}
+
+        main { flex-grow: 1; position: relative; overflow: hidden; }
+        .section { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; overflow-y: auto; padding: 20px; scroll-behavior: smooth;}
+        .section.active { display: block; animation: fadeIn 0.4s ease-in-out;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* SECCIÓN INICIO */
+        .home-container { max-width: 1100px; margin: 20px auto; text-align: center; padding-bottom: 40px;}
+        .home-subtitle { font-size: 1.15em; color: #475569; margin-bottom: 40px; line-height: 1.6; padding: 0 20px;}
+        .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 0 20px;}
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px 25px; cursor: pointer; transition: 0.4s; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; align-items: center; text-decoration: none; }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,51,102,0.1); border-color: var(--primary); }
+        .card-icon { font-size: 3.5em; margin-bottom: 20px; background: #f1f5f9; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; border-radius: 50%;}
+        .card-title { font-size: 1.3em; font-weight: 900; color: var(--primary); margin-bottom: 15px; }
+        .card-desc { font-size: 0.95em; color: #64748b; line-height: 1.6; text-align: center;}
+
+        /* ÍNDICE EN INICIO */
+        .toc-container { background: var(--surface); margin: 40px 20px 0 20px; padding: 35px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); text-align: left;}
+        .toc-title { font-size: 1.5em; font-weight: 900; color: var(--primary); margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px;}
+        .toc-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .toc-column h3 { font-size: 1.1em; color: #0f172a; margin-bottom: 15px; }
+        .toc-list { list-style: none; padding: 0; margin: 0; }
+        .toc-list li { margin-bottom: 12px; font-size: 0.95em; }
+        .toc-list a { color: #475569; text-decoration: none; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; }
+        .toc-list a:hover { color: var(--accent); padding-left: 5px; }
+        .toc-list a::before { content: '→'; margin-right: 8px; color: var(--accent); opacity: 0.5; font-weight: 900;}
+
+        /* SECCIÓN TEORÍA: DISEÑO POR PESTAÑAS LATERALES */
+        .theory-layout { display: flex; gap: 20px; max-width: 1200px; margin: 0 auto 40px auto; align-items: flex-start; }
+        
+        .theory-sidebar { 
+            flex: 0 0 300px; 
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            position: sticky; 
+            top: 20px;
+        }
+        .theory-sidebar h3 { margin-top: 0; font-size: 1.1em; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .theory-nav-btn { 
+            display: block; width: 100%; text-align: left; background: transparent; border: none; 
+            padding: 12px 15px; margin-bottom: 5px; border-radius: 8px; color: #475569; font-weight: 700; 
+            font-size: 0.9em; cursor: pointer; transition: 0.2s; border-left: 3px solid transparent;
+        }
+        .theory-nav-btn:hover { background: #f1f5f9; color: var(--primary); border-left-color: var(--primary); }
+        .theory-nav-btn.active-sub { background: var(--primary); color: white; border-left-color: var(--accent); box-shadow: 0 4px 10px rgba(0,51,102,0.2); }
+
+        .theory-content { 
+            flex-grow: 1; background: var(--surface); padding: 45px; border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid var(--border); min-height: 600px;
+        }
+        .theory-panel { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .theory-panel.active-panel { display: block; }
+        .theory-panel h2 { color: var(--primary); border-bottom: 3px solid var(--accent); padding-bottom: 12px; margin-top: 0; font-size: 2em; }
+        .theory-panel p { line-height: 1.8; color: #334155; font-size: 1.1em; text-align: justify; margin-bottom: 20px;}
+        .theory-panel ul { line-height: 1.8; color: #334155; font-size: 1.1em; margin-bottom: 25px; padding-left: 25px;}
+        .math-box { background: #f8fafc; border-left: 5px solid var(--primary); padding: 20px; margin: 25px 0; font-family: monospace; overflow-x: auto; border-radius: 0 8px 8px 0; font-size: 1.2em;}
+
+        /* MANUAL DE USO */
+        .text-content { max-width: 900px; margin: 0 auto 40px auto; background: var(--surface); padding: 50px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .text-content h2 { color: var(--primary); border-bottom: 3px solid var(--accent); padding-bottom: 12px; margin-top: 0; font-size: 2.2em; }
+        .text-content h3 { color: #0f172a; margin-top: 40px; font-size: 1.4em; }
+        .text-content p, .text-content li { line-height: 1.8; color: #334155; font-size: 1.1em; text-align: justify; }
+        .text-content ol { padding-left: 25px; margin-bottom: 25px; }
+        
+        /* FOOTER GLOBAL PARA TODAS LAS SECCIONES DENTRO DEL MAIN */
+        footer { text-align: center; padding: 25px 20px; margin-top: 40px; border-top: 1px solid var(--border); color: #64748b; font-size: 0.9em; width: 100%; clear: both;}
+        footer span { color: var(--primary); font-weight: 800; }
+
+        @media (max-width: 900px) {
+            .cards-grid, .toc-columns, .theory-layout { grid-template-columns: 1fr; flex-direction: column; }
+            .top-nav { flex-wrap: wrap; }
+            .theory-sidebar { position: static; flex: none; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <span class="uis-tag">Software de simulación interactiva SimuMetalurgia © | UIS</span>
+    <h1>Módulo de Ensayo de Tracción ASTM</h1>
+</header>
+
+<nav class="top-nav">
+    <button class="nav-btn active-btn" id="btn-inicio" onclick="switchSection('inicio')">Inicio</button>
+    <button class="nav-btn" id="btn-teoria" onclick="switchSection('teoria')">Teoría y Fundamentos</button>
+    <button class="nav-btn" id="btn-manual" onclick="switchSection('manual')">Manual de Uso</button>
+    <a href="https://simumetalurgia-arch.github.io/Simulador-Esfuerzo-Unixial/" target="_blank" class="nav-btn sim-btn">Abrir Simulador 3D </a>
+</nav>
+
+<main>
+    <div id="inicio" class="section active">
+        <div class="home-container">
+            <p class="home-subtitle">Plataforma de grado de ingeniería para el análisis fenomenológico de propiedades mecánicas, mecánica de fractura y caracterización de materiales metálicos industriales.</p>
+            
+            <div class="cards-grid">
+                <div class="card" onclick="switchSection('teoria')">
+                    <div class="card-icon">📚</div>
+                    <div class="card-title">Fundamentos Teóricos</div>
+                    <div class="card-desc">Explora la mecánica de medios continuos, Ley de Hooke, endurecimiento por acritud, y Criterio de Considère.</div>
+                </div>
+                <div class="card" onclick="switchSection('manual')">
+                    <div class="card-icon">⚙️</div>
+                    <div class="card-title">Manual Operativo</div>
+                    <div class="card-desc">Guía de configuración geométrica ASTM, lectura de celda de carga y exportación de datos técnicos en CSV.</div>
+                </div>
+                <a href="https://simumetalurgia-arch.github.io/Simulador-Esfuerzo-Unixial/" target="_blank" class="card" style="border-color: var(--accent);">
+                    <div class="card-icon" style="background: #fee2e2; color: var(--accent);">🔬</div>
+                    <div class="card-title" style="color: var(--accent);">Simulador 3D Dinámico</div>
+                    <div class="card-desc">Ejecuta ensayos virtuales con más de 50 aleaciones bajo norma ASTM en nuestra plataforma gráfica externa.</div>
+                </a>
+            </div>
+
+            <div class="toc-container">
+                <h2 class="toc-title">Índice de Contenidos Temáticos</h2>
+                <div class="toc-columns">
+                    <div class="toc-column">
+                        <h3> Módulo Teórico</h3>
+                        <ul class="toc-list">
+                            <li><a onclick="openTheoryTab('t-1')">1. Esfuerzo Ingenieril vs. Verdadero</a></li>
+                            <li><a onclick="openTheoryTab('t-2')">2. Rango Elástico y Ley de Hooke</a></li>
+                            <li><a onclick="openTheoryTab('t-3')">3. Límite de Fluencia ($S_y$)</a></li>
+                            <li><a onclick="openTheoryTab('t-4')">4. Endurecimiento por Acritud (Hollomon)</a></li>
+                            <li><a onclick="openTheoryTab('t-5')">5. Resistencia a la Tracción ($S_u$)</a></li>
+                            <li><a onclick="openTheoryTab('t-6')">6. Catálogo Integral de Materiales y Aleaciones</a></li>
+                            <li><a onclick="openTheoryTab('t-7')">7. Fenomenología de la Estricción</a></li>
+                            <li><a onclick="openTheoryTab('t-8')">8. Energía: Resiliencia ($U_r$)</a></li>
+                            <li><a onclick="openTheoryTab('t-9')">9. Energía: Tenacidad ($U_t$)</a></li>
+                            <li><a onclick="openTheoryTab('t-10')">10. Mecanismos y Topología de Fractura</a></li>
+                        </ul>
+                    </div>
+                    <div class="toc-column">
+                        <h3> Manual de Usuario (UTM)</h3>
+                        <ul class="toc-list">
+                            <li><a onclick="switchSection('manual')">I. Configuración de Probeta y Material</a></li>
+                            <li><a onclick="switchSection('manual')">II. Definición de la Celda de Carga</a></li>
+                            <li><a onclick="switchSection('manual')">III. Ejecución y Monitoreo del Ensayo</a></li>
+                            <li><a onclick="switchSection('manual')">IV. Análisis y Exportación de Datos CSV</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer>SimuMetalurgia © 2026 <br><br> Desarrollo: <span>Andrés Felipe Caro Miranda & José Gabriel Franco Correa</span>  |  Asesoría: <span>Pro. Ana Emilse Coy Echeverria & Prof. Carlos Andrés Galán Pinilla.</span></footer>
+    </div>
+
+    <div id="teoria" class="section">
+        <div class="theory-layout">
+            
+            <div class="theory-sidebar">
+                <h3>Subsecciones</h3>
+                <button class="theory-nav-btn active-sub" id="btn-t-1" onclick="openTheoryTab('t-1')">1. Ing. vs Verdadero</button>
+                <button class="theory-nav-btn" id="btn-t-2" onclick="openTheoryTab('t-2')">2. Ley de Hooke</button>
+                <button class="theory-nav-btn" id="btn-t-3" onclick="openTheoryTab('t-3')">3. Límite de Fluencia</button>
+                <button class="theory-nav-btn" id="btn-t-4" onclick="openTheoryTab('t-4')">4. Acritud (Hollomon)</button>
+                <button class="theory-nav-btn" id="btn-t-5" onclick="openTheoryTab('t-5')">5. Resistencia ($S_u$)</button>
+                <button class="theory-nav-btn" id="btn-t-6" onclick="openTheoryTab('t-6')">6. Catálogo Integral de Materiales y Aleaciones</button>
+                <button class="theory-nav-btn" id="btn-t-7" onclick="openTheoryTab('t-7')">7. Estricción (Necking)</button>
+                <button class="theory-nav-btn" id="btn-t-8" onclick="openTheoryTab('t-8')">8. Resiliencia ($U_r$)</button>
+                <button class="theory-nav-btn" id="btn-t-9" onclick="openTheoryTab('t-9')">9. Tenacidad ($U_t$)</button>
+                <button class="theory-nav-btn" id="btn-t-10" onclick="openTheoryTab('t-10')">10. Fractura</button>
+            </div>
+
+            <div class="theory-content">
+                
+                <div id="t-1" class="theory-panel active-panel">
+                    <h2>1. Análisis Riguroso del Diagrama Esfuerzo-Deformación</h2>
+                    <p>El diagrama de tracción uniaxial no es solo una representación de fuerza contra desplazamiento; es la huella dactilar termodinámica y estructural de un material. A partir de este, se deduce la integridad de los enlaces interatómicos, la movilidad de las dislocaciones y el mecanismo de falla inherente.</p>
+                    
+                    <h3>1.1. Geometría de la Curva: Ingenieril vs. Verdadera</h3>
+                    <p>Para propósitos de diseño de elementos de máquinas, se utiliza el <strong>Diagrama Ingenieril</strong>. Este modelo simplifica el análisis asumiendo que el área transversal inicial ($A_0$) de la probeta se mantiene inalterada. Sin embargo, por el principio de conservación del volumen plástico, el área transversal disminuye físicamente. El <strong>Diagrama Verdadero</strong> corrige esta divergencia utilizando el área instantánea ($A_i$).</p>
+                    
+                    <div class="math-box">
+                        <strong>Relaciones Matemáticas hasta la Estricción:</strong><br><br>
+                        Esfuerzo Ingenieril:     $\sigma = \frac{F}{A_0}$<br><br>
+                        Deformación Unitaria:   $\epsilon = \frac{\Delta L}{L_0}$<br><br>
+                        Esfuerzo Verdadero:     $\sigma_T = \sigma(1 + \epsilon)$<br><br>
+                        Deformación Verdadera: $\epsilon_T = \ln(1 + \epsilon)$
+                    </div>
+
+                    <h3>1.2. Anatomía General de la Curva de Tracción</h3>
+                    <img src="https://www.researchgate.net/profile/Jhonatan-A-Becerra-Duitama/publication/342314228/figure/fig7/AS:904164007739397@1592580906578/Figura-20-Diagrama-esfuerzo-deformacion-Fuente-ASTM-2009.png" alt="Anatomía Exagerada Curva Esfuerzo Deformación" style="width:100%; max-width: 800px; border-radius:8px; margin: 25px auto; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <p>La gráfica superior exagera deliberadamente las transiciones para evidenciar las fases críticas del ensayo:</p>
+                    <ul>
+                        <li><strong>Región Elástica y Límite Proporcional:</strong> La zona inicial estrictamente recta. Aquí, el esfuerzo es directamente proporcional a la deformación (Ley de Hooke). Los enlaces atómicos actúan como resortes mecánicos; si se retira la carga, la probeta recupera su longitud original.</li>
+                        <li><strong>Límite de Fluencia (Yield Point):</strong> El punto de no retorno. Físicamente, representa el momento exacto en que los esfuerzos de cizalladura superan la resistencia de la red cristalina, provocando que las dislocaciones comiencen a deslizarse masivamente por los planos de empaquetamiento compacto.</li>
+                        <li><strong>Endurecimiento por Deformación (Acritud):</strong> Tras la fluencia, la curva asciende. Esto no indica que el material recupere elasticidad, sino que las dislocaciones en movimiento chocan, se enmarañan y se bloquean en límites de grano o precipitados, requiriendo mayor energía (esfuerzo) para forzar nueva deformación plástica.</li>
+                        <li><strong>Esfuerzo Último (UTS) y Estricción:</strong> Es el ápice de la curva ingenieril. Aquí, la tasa de endurecimiento por acritud ya no puede compensar la rápida reducción del área transversal. Se forma un "cuello" (inestabilidad plástica). En la curva ingenieril se observa una caída del esfuerzo, mientras que en la curva verdadera, el esfuerzo sigue subiendo hasta el clivaje final.</li>
+                    </ul>
+
+                    <h3>1.3. Análisis Comparativo: Familias de Aleaciones Metálicas</h3>
+                    <img src="https://cdn.fisimat.com.mx/wp-content/uploads/2025/06/Curvas-de-Esfuerzo-y-Deformacion-Tipicas.png" alt="Comparación de Acero, Aleación Fuerte y Hierro Fundido" style="width:100%; max-width: 800px; border-radius:8px; margin: 25px auto; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <p>La superposición de curvas revela diferencias drásticas dictadas por la microestructura y los tratamientos térmicos o mecánicos:</p>
+                    <ul>
+                        <li><strong>Curva 1 (Acero de bajo carbono - Dúctil):</strong> Muestra una amplia zona elástica y un fenómeno de fluencia discontinuo (pico de fluencia superior e inferior). Esto ocurre debido a las atmósferas de Cottrell: los átomos intersticiales de carbono anclan las dislocaciones, y cuando estas se liberan repentinamente, ocurre una caída en el esfuerzo formando bandas de Lüders. Posee una masiva zona plástica, lo que le otorga la mayor tenacidad (área bajo la curva) del grupo. Excelente para absorción de energía estructural.</li>
+                        <li><strong>Curva 2 (Aleación de alta resistencia):</strong> Característica de aceros aleados, cementados o con tratamientos térmicos de temple y revenido. El límite de fluencia y el esfuerzo último son significativamente superiores a la Curva 1. La presencia de martensita o carburos finamente dispersos bloquea casi de inmediato el movimiento de las dislocaciones. El costo de esta resistencia es la pérdida de ductilidad: la estricción es muy reducida y el material rompe con poca elongación porcentual.</li>
+                        <li><strong>Curva 3 (Fundición de Hierro - Frágil):</strong> Carece por completo de región de fluencia plástica. La matriz suele estar saturada de hojuelas de grafito o carburos masivos (como en la fundición blanca) que actúan como concentradores de esfuerzos. Al superar la energía de cohesión elástica, una grieta se propaga a velocidades transónicas por clivaje a través de los granos. Falla de manera catastrófica sin previo aviso visual.</li>
+                    </ul>
+
+                    <h3>1.4. Extrapolación Macromolecular: Comportamiento de Polímeros</h3>
+                    <img src="https://www.scielo.org.mx/img/revistas/eq/v21n4/a6f11.jpg" alt="Comparación de Acero, Aleación Fuerte y Hierro Fundido" style="width:100%; max-width: 800px; border-radius:8px; margin: 25px auto; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <p>A diferencia de la red cristalina metálica, los materiales poliméricos están compuestos por largas cadenas macromoleculares unidas por fuerzas secundarias (Van der Waals o puentes de hidrógeno) y enlaces covalentes cruzados. Su diagrama esfuerzo-deformación exhibe comportamientos únicos y fuertemente dependientes de la tasa de deformación y la temperatura respecto a su transición vítrea ($T_g$):</p>
+                    <ul>
+                        <li><strong>Polímeros Frágiles (Termoestables o Vítreos):</strong> Por debajo de su $T_g$ o debido a un alto grado de entrecruzamiento (cross-linking), las cadenas no pueden deslizarse. La curva es recta y pronunciada, rompiendo en el régimen elástico con mínima elongación (ej. Resinas epóxicas, poliestireno).</li>
+                        <li><strong>Polímeros Plásticos (Termoplásticos Semicristalinos):</strong> Superado el límite elástico, muestran una fluencia pronunciada seguida a menudo de una caída del esfuerzo al formar un cuello. Sin embargo, a diferencia de los metales, este cuello no lleva a la rotura inmediata. Ocurre un estirado en frío (<em>cold drawing</em>), donde las cadenas amorfas se desenredan y se alinean paralelamente a la dirección del esfuerzo, generando un endurecimiento por orientación molecular extremo antes del colapso (ej. Polietileno, Nylon).</li>
+                        <li><strong>Elastómeros (Gomas):</strong> Presentan curvas no lineales desde el origen y módulos de elasticidad sumamente bajos. Pueden elongarse cientos de veces su longitud original (ej. caucho vulcanizado). Su resistencia proviene de la entropía conformacional: el estiramiento desenrolla las cadenas moleculares altamente plegadas, sin romper enlaces primarios, retornando a su caos configuracional al descargar.</li>
+                    </ul>
+                </div>
+
+                <div id="t-2" class="theory-panel">
+    <h2>2. Rango Elástico y Ley de Hooke</h2>
+    <p>La respuesta inicial de un metal ante un esfuerzo de tracción uniaxial es la <strong>deformación elástica</strong>. A nivel microscópico, este fenómeno representa una perturbación en el equilibrio de las fuerzas interatómicas. La energía suministrada por la carga externa se utiliza para incrementar la distancia de separación entre los núcleos atómicos de la red cristalina, venciendo parcialmente las fuerzas de cohesión del enlace metálico. Esta energía se almacena de forma potencial; por ello, al retirar el esfuerzo, los átomos regresan espontáneamente a sus posiciones de mínima energía, recuperando la geometría original de la probeta.</p>
+    
+    <h3>2.1. El Límite Proporcional y la Linealidad Fenomenológica</h3>
+    <img src="https://blogs.ugto.mx/rea/wp-content/uploads/sites/71/2022/02/Captura-de-Pantalla-2022-02-23-a-las-10.38.38.png" alt="Resaltado de la zona elástica lineal" style="width:100%; max-width: 850px; border-radius: 12px; margin: 35px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>Como se evidencia en la zona circulada del diagrama superior, el inicio del ensayo se caracteriza por una pendiente constante. En metalurgia mecánica, es vital distinguir entre el <strong>Límite de Proporcionalidad</strong> (donde la gráfica deja de ser una recta) y el <strong>Límite Elástico</strong> (donde inicia la deformación plástica). En la mayoría de las aleaciones industriales, estos puntos son casi coincidentes. Hasta este umbral, el material cumple con el principio de superposición y no presenta histéresis elástica significativa.</p>
+
+    <h3>2.2. El Módulo de Young ($E$): Rigidez y Energía de Enlace</h3>
+    <img src="https://1.bp.blogspot.com/-URHVXKfr7mc/WRPjOd4NpHI/AAAAAAABNxU/U_SmBlkQcQsMCbftUNJuqPlJ62Mn0rXpQCLcB/s1600/images.png" alt="Representación de la Ley de Hooke y pendiente E" style="width:100%; max-width: 850px; border-radius: 12px; margin: 35px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>La proporcionalidad entre el esfuerzo aplicado ($\sigma$) y la deformación unitaria resultante ($\epsilon$) se define mediante la <strong>Ley de Hooke</strong>. El parámetro fundamental aquí es el <strong>Módulo de Elasticidad o Módulo de Young ($E$)</strong>.</p>
+    
+    <div class="math-box">
+        $$\sigma = E \cdot \epsilon$$
+    </div>
+
+    <p>Físicamente, $E$ es una medida de la rigidez de la aleación. Su magnitud depende directamente del potencial de enlace interatómico (Curva de Lennard-Jones); una pendiente más pronunciada en el pozo de energía potencial se traduce en un módulo elástico más elevado. Es importante notar que el Módulo de Young es una propiedad <strong>insensible a la microestructura</strong> (no cambia significativamente con tratamientos térmicos o deformación en frío), pero es altamente <strong>dependiente de la temperatura</strong>, disminuyendo a medida que la energía térmica facilita la dilatación de los enlaces.</p>
+
+    <h3>2.3. Módulo de Resiliencia ($U_r$)</h3>
+    <p>Termodinámicamente, el área bajo esta zona lineal representa la máxima energía elástica que el material puede absorber por unidad de volumen sin sufrir daño permanente. Se calcula como:</p>
+    <div class="math-box">
+        $$U_r = \int_{0}^{\epsilon_y} \sigma \, d\epsilon = \frac{S_y^2}{2E}$$
+    </div>
+    <p>Este parámetro es crucial en el diseño de componentes destinados a absorber impactos o vibraciones, como resortes y ballestas, donde se requiere una alta capacidad de recuperación energética.</p>
+</div>
+
+                <div id="t-3" class="theory-panel">
+    <h2>3. Transición Elasto-Plástica y Límite de Fluencia</h2>
+    <p>A medida que la carga uniaxial aumenta, el esfuerzo de cizalladura interno alcanza un valor crítico capaz de romper los enlaces y forzar el desplazamiento de los planos atómicos. Este es el punto de inflexión donde termina la reversibilidad y comienza la <strong>deformación plástica permanente</strong>. Fenomenológicamente, este proceso está gobernado por el movimiento y la multiplicación de las <strong>dislocations</strong> (defectos lineales en la red cristalina).</p>
+
+    <h3>3.1. Identificación del Punto de Cedencia</h3>
+    <img src="http://lawebdeingeniosos.com/wp-content/uploads/2023/08/curva-01.png" alt="Zonas elástica y plástica en el diagrama esfuerzo-deformación" style="width:100%; max-width: 850px; border-radius: 12px; margin: 35px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>Como se observa en la imagen superior, el <strong>Yield Point</strong> o Límite de Fluencia representa el esfuerzo máximo que el material puede soportar sin sufrir una deformación permanente medible. Es uno de los parámetros más importantes en el diseño de ingeniería, ya que define el umbral de seguridad estructural de un componente.</p>
+
+    <h3>3.2. Fluencia Continua vs. Discontinua</h3>
+    <p>No todos los materiales "avisan" de la misma forma cuando empiezan a fluir. En metalurgia, distinguimos dos comportamientos principales:</p>
+    
+    <ul>
+        <li><strong>Fluencia Discontinua (Aceros de Bajo Carbono):</strong> Presentan un "pico" u oscilación sutil. Los átomos de soluto (carbono) anclan las dislocaciones en lo que se conoce como <strong>Atmósferas de Cottrell</strong>. Se requiere un esfuerzo extra para liberarlas (Punto de Fluencia Superior) y, una vez libres, el esfuerzo cae ligeramente (Punto de Fluencia Inferior).</li>
+        <li><strong>Fluencia Continua (Metales FCC como Al, Cu, Au):</strong> La transición es suave y progresiva. En estos casos, al no haber un punto de quiebre evidente, la ingeniería utiliza el <strong>Método del Desfase del 0.2%</strong> ($\sigma_{0.2}$) para definir el límite elástico convencional.</li>
+    </ul>
+
+    <h3>3.3. Energía de Activación y Temperatura</h3>
+    <p>La fluencia no es una propiedad estática; es altamente sensible a la temperatura y a la velocidad de deformación. Un aumento en la energía térmica facilita el movimiento de las dislocaciones (climb y cross-slip), reduciendo drásticamente el valor de $S_y$, lo que se conoce como ablandamiento térmico.</p>
+    
+    <div class="math-box">
+        $$S_y = \text{Esfuerzo donde } \epsilon_p \geq 0.002$$
+    </div>
+</div>
+
+                <div id="t-4" class="theory-panel">
+    <h2>4. Endurecimiento por Acritud (Ley de Hollomon)</h2>
+    <p>El <strong>endurecimiento por deformación</strong> o acritud es el fenómeno mediante el cual un metal se vuelve más resistente y duro a medida que se deforma plásticamente. Este proceso es la base de operaciones industriales como el laminado en frío, el trefilado y el forjado, donde se busca mejorar las propiedades mecánicas sin recurrir a aleantes adicionales.</p>
+
+    <h3>4.1. El Mecanismo Microscópico: El "Bosque de Dislocaciones"</h3>
+    <p>Físicamente, la deformación plástica implica la generación masiva de nuevas dislocaciones. A medida que el material se estira, la densidad de dislocaciones aumenta (pasando de $10^6$ a $10^{12}$ cm/cm³). Estas dislocaciones se mueven por los planos de deslizamiento hasta que se encuentran con obstáculos: límites de grano, impurezas o, más frecuentemente, <strong>otras dislocaciones</strong>.</p>
+    
+        
+    <p>Cuando las dislocaciones se cruzan y se enredan, forman lo que se denomina un "bosque de dislocaciones". Estos enredos actúan como barreras que impiden el movimiento de nuevas dislocaciones, requiriendo un esfuerzo cada vez mayor para continuar la deformación. Es por esto que la curva de esfuerzo-deformación sube constantemente después de la fluencia.</p>
+
+    <h3>4.2. Modelado Matemático: La Ecuación de Hollomon</h3>
+    <p>Para describir matemáticamente esta zona parabólica de la curva de flujo, se utiliza la <strong>Ecuación de Hollomon</strong>. Es fundamental notar que esta ley solo es válida utilizando valores <strong>Verdaderos</strong> (True Stress/Strain), ya que el modelo ingenieril pierde precisión en grandes deformaciones.</p>
+    
+    <div class="math-box">
+        $$\sigma_T = K \cdot \epsilon_T^n$$
+    </div>
+
+    <p>Donde cada término tiene un significado físico profundo:</p>
+    <ul>
+        <li><strong>$\sigma_T$ (Esfuerzo Verdadero):</strong> La carga instantánea dividida por el área real en ese momento.</li>
+        <li><strong>$\epsilon_T$ (Deformación Plástica Verdadera):</strong> El logaritmo natural del cambio de longitud ($\ln(L/L_0)$).</li>
+        <li><strong>$K$ (Coeficiente de Resistencia):</strong> Representa el esfuerzo verdadero necesario para producir una deformación plástica de 1.0 (100%). Es una medida de la resistencia base de la red cristalina.</li>
+        <li><strong>$n$ (Exponente de Endurecimiento):</strong> Es quizás el valor más crítico. Varía entre 0 y 1 e indica la capacidad del material para endurecerse. 
+            <ul>
+                <li>Si $n=0$, el material es perfectamente plástico (como plastilina).</li>
+                <li>Si $n=1$, el material es perfectamente elástico.</li>
+                <li>En metales industriales, suele oscilar entre <strong>0.15 y 0.50</strong>.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>4.3. Determinación de Parámetros y Criterio de Estabilidad</h3>
+    <p>En el laboratorio, los ingenieros determinan $n$ y $K$ aplicando logaritmos a la ecuación de Hollomon para convertirla en una línea recta:</p>
+    <div class="math-box">
+        $$\log(\sigma_T) = \log(K) + n \cdot \log(\epsilon_T)$$
+    </div>
+    <p>Al graficar en papel log-log, la pendiente de la recta resultante es exactamente $n$.</p>
+    
+    <p><strong>Dato Técnico Clave:</strong> Según el Criterio de Considère, existe una relación matemática fascinante: en el punto de esfuerzo máximo ($S_u$), el valor de la deformación verdadera es numéricamente igual al exponente de endurecimiento ($\epsilon_u = n$). Esto significa que un material con un $n$ alto se demorará mucho más en formar el "cuello" o estricción, permitiendo una mayor deformación uniforme.</p>
+</div>
+
+                <div id="t-5" class="theory-panel">
+    <h2>5. Resistencia Máxima a la Tracción ($S_u$)</h2>
+    <p>La <strong>Resistencia Última a la Tracción (UTS)</strong>, denotada como $S_u$ o $\sigma_{max}$, es el punto de esfuerzo máximo en la curva esfuerzo-deformación ingenieril. Históricamente, es el valor que los ingenieros utilizan para clasificar la fortaleza de un material, pero desde la física de metales, representa un punto crítico de <strong>inestabilidad plástica</strong>.</p>
+
+    <h3>5.1. Curva Convencional vs. Curva Real</h3>
+    <img src="https://blog.utp.edu.co/metalografia/files/2010/10/Diagramas-esfuerzo-deformaci%C3%B3n-unitaria-convencional-y-real-para-un-material-d%C3%BActil-acero-no-de-escala.png" alt="Comparativa Esfuerzo Ingenieril vs Verdadero" style="width:100%; max-width: 850px; border-radius: 12px; margin: 35px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    
+    <p>Como se observa claramente en la gráfica superior, existe una divergencia drástica después de alcanzar el punto más alto:</p>
+    <ul>
+        <li><strong>Gráfica Ingenieril (Convencional):</strong> La curva parece "caer" después del UTS. Esto es un artificio matemático, ya que seguimos dividiendo la carga ($F$) por el área inicial ($A_0$), la cual ya no existe en la probeta real.</li>
+        <li><strong>Gráfica de la Vida Real (Verdadera):</strong> El esfuerzo <strong>nunca cae</strong>; continúa subiendo constantemente hasta el mismo instante de la fractura. Esto ocurre porque el material sigue endureciéndose por acritud, y al dividir la carga por el área instantánea ($A_i$), el valor del esfuerzo real se dispara.</li>
+    </ul>
+
+    <h3>5.2. Importancia en el Diseño Estructural</h3>
+    <p>Aunque el diseño mecánico suele basarse en el límite elástico ($S_y$) para evitar deformaciones permanentes, el $S_u$ es vital por dos razones:</p>
+    <ol>
+        <li><strong>Factor de Seguridad:</strong> Proporciona una indicación del "margen de maniobra" que tiene una estructura antes del colapso total.</li>
+        <li><strong>Clasificación Comercial:</strong> La mayoría de los aceros y aleaciones se venden y especifican según su valor de $S_u$ (ej. un acero Grado 60 tiene un UTS mínimo de 60 ksi).</li>
+    </ol>
+
+    <h3>5.3. El UTS como Límite en Procesos de Conformado</h3>
+    <p>En la ingeniería de manufactura y conformado (Metalworking), el $S_u$ no es solo un número de resistencia, es un <strong>límite operativo estricto</strong>. He aquí por qué se diseña con respecto a este valor:</p>
+    
+    <ul>
+        <li><strong>Límite de Deformación Uniforme:</strong> El UTS marca el fin de la deformación uniforme. En procesos como el <strong>embutido profundo</strong> o el <strong>estirado de chapas</strong>, si el material supera este punto, se genera estricción localizada (cuello), lo que produce una pared delgada e inaceptable en la pieza final.</li>
+        <li><strong>Prevención de Desgarros:</strong> Al diseñar un proceso de conformado, la deformación máxima permitida debe estar por debajo de $\epsilon_u$ (deformación en el UTS). Si se intenta deformar más allá, el material se "desgarra" o rompe catastróficamente debido a que la tasa de reducción de área supera la tasa de endurecimiento.</li>
+        <li><strong>Criterio de Manufacturabilidad:</strong> Un material con una brecha amplia entre $S_y$ y $S_u$ es altamente "conformable", ya que permite grandes cambios de forma antes de volverse inestable.</li>
+    </ul>
+
+    <div class="math-box">
+        $$En\ el\ UTS:\ \frac{d\sigma}{d\epsilon} = \sigma \implies \text{Inicio de la Estricción}$$
+    </div>
+
+    <p>Por lo tanto, en conformado, el objetivo es maximizar la deformación sin cruzar nunca el umbral del UTS, garantizando que la pieza final mantenga un espesor constante y una integridad estructural óptima.</p>
+</div>
+                <div id="t-6" class="theory-panel">
+    <h2>6. Catálogo Integral de Materiales y Aleaciones</h2>
+    <p>Este compendio detalla las propiedades mecánicas de las 53 aleaciones integradas en <strong>SimuMetalúrgica</strong>. La tabla funciona como una guía de referencia para la validación de datos experimentales, permitiendo comparar el comportamiento de diferentes familias cristalográficas bajo la misma norma ASTM.</p>
+
+    <style>
+        .table-wrapper { 
+            max-height: 550px; 
+            overflow-y: auto; 
+            margin-top: 20px; 
+            border: 1px solid var(--border); 
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .materials-table { width: 100%; border-collapse: collapse; font-size: 0.82em; background: white; }
+        .materials-table thead th { 
+            position: sticky; top: 0; 
+            background: var(--primary); 
+            color: white; padding: 12px 5px; 
+            z-index: 10; border: 1px solid #002244;
+        }
+        .materials-table td { padding: 8px 5px; text-align: center; border: 1px solid var(--border); font-weight: 600; }
+        .materials-table tr:nth-child(even) { background: #f8fafc; }
+        .materials-table tr:hover { background: #f1f5f9; }
+        
+        .group-header { background: #e2e8f0 !important; color: var(--primary); font-weight: 900; text-transform: uppercase; text-align: left !important; padding-left: 15px !important; font-size: 0.9em; }
+        .c-puro { color: #b45309; }
+        .c-ductil { color: #1e40af; }
+        .c-fragil { color: #b91c1c; }
+    </style>
+
+    <div class="table-wrapper">
+        <table class="materials-table">
+            <thead>
+                <tr>
+                    <th>Material / Aleación</th>
+                    <th>$S_y$ (MPa)</th>
+                    <th>$S_u$ (MPa)</th>
+                    <th>$E$ (GPa)</th>
+                    <th>$U_r$ (MJ/m³)</th>
+                    <th>$U_t$ (MJ/m³)</th>
+                    <th>Fractura</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="7" class="group-header">Metales Puros (Súper Dúctiles - FCC/HCP)</td></tr>
+                <tr><td class="c-puro">Aluminio Puro (1100-O)</td><td>35</td><td>90</td><td>69</td><td>0.0089</td><td>35.5</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Cobre Puro Recocido</td><td>70</td><td>220</td><td>110</td><td>0.0223</td><td>85.0</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Hierro Armco (99.9%)</td><td>180</td><td>280</td><td>200</td><td>0.0810</td><td>75.0</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Oro Puro (24k)</td><td>20</td><td>120</td><td>78</td><td>0.0026</td><td>60.0</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Plata Pura</td><td>50</td><td>150</td><td>83</td><td>0.0151</td><td>55.0</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Níquel Puro (N200)</td><td>100</td><td>450</td><td>200</td><td>0.0250</td><td>115.0</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Titanio Grado 1 (CP)</td><td>170</td><td>240</td><td>103</td><td>0.1403</td><td>72.0</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Zinc Puro (Cast)</td><td>25</td><td>35</td><td>108</td><td>0.0029</td><td>4.8</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Plomo Puro</td><td>10</td><td>15</td><td>16</td><td>0.0031</td><td>8.5</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Magnesio Puro</td><td>90</td><td>180</td><td>45</td><td>0.0900</td><td>28.5</td><td>Punta</td></tr>
+                <tr><td class="c-puro">Estaño Puro</td><td>11</td><td>15</td><td>50</td><td>0.0012</td><td>6.8</td><td>Punta</td></tr>
+
+                <tr><td colspan="7" class="group-header">Aleaciones Dúctiles e Industriales</td></tr>
+                <tr><td class="c-ductil">Acero A36 Structural</td><td>250</td><td>400</td><td>200</td><td>0.1563</td><td>95.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Acero AISI 1020 HR</td><td>295</td><td>420</td><td>200</td><td>0.2176</td><td>110.5</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Acero AISI 1045 Norm</td><td>310</td><td>570</td><td>205</td><td>0.2344</td><td>85.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Acero Inox 304L</td><td>210</td><td>520</td><td>193</td><td>0.1142</td><td>210.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Acero Inox 316</td><td>290</td><td>580</td><td>190</td><td>0.2213</td><td>185.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Aluminio 6061-T6</td><td>276</td><td>310</td><td>69</td><td>0.5520</td><td>32.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Aluminio 7075-T6</td><td>503</td><td>572</td><td>72</td><td>1.7571</td><td>48.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Aluminio 2024-T4</td><td>324</td><td>469</td><td>73</td><td>0.7190</td><td>65.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Latón 70/30 Recocido</td><td>110</td><td>350</td><td>110</td><td>0.0550</td><td>125.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Latón Naval</td><td>150</td><td>380</td><td>100</td><td>0.1125</td><td>105.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Bronce Silicio</td><td>105</td><td>380</td><td>105</td><td>0.0525</td><td>145.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Titanio Grado 5</td><td>880</td><td>950</td><td>114</td><td>3.3965</td><td>90.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Inconel 625</td><td>415</td><td>830</td><td>207</td><td>0.4161</td><td>155.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Inconel 718</td><td>1035</td><td>1240</td><td>200</td><td>2.6781</td><td>185.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Monel 400</td><td>240</td><td>550</td><td>180</td><td>0.1600</td><td>135.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Acero AISI 4140 Rec.</td><td>415</td><td>655</td><td>210</td><td>0.4101</td><td>98.0</td><td>Copa-Cono</td></tr>
+                <tr><td class="c-ductil">Acero Maraging 250</td><td>1720</td><td>1760</td><td>190</td><td>7.7853</td><td>105.0</td><td>Copa-Cono</td></tr>
+
+                <tr><td colspan="7" class="group-header">Materiales Frágiles y de Alta Dureza</td></tr>
+                <tr><td class="c-fragil">Fundición Gris CL20</td><td>140</td><td>145</td><td>100</td><td>0.0980</td><td>0.15</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Fundición Gris CL40</td><td>260</td><td>265</td><td>124</td><td>0.2726</td><td>0.32</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Fundición Blanca Mart</td><td>400</td><td>410</td><td>160</td><td>0.5000</td><td>0.25</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Acero Herr. D2 (Temp)</td><td>2000</td><td>2100</td><td>210</td><td>9.5238</td><td>2.10</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Acero Herr. M2 (HSS)</td><td>1800</td><td>1900</td><td>210</td><td>7.7143</td><td>2.85</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Berilio Puro (Cast)</td><td>240</td><td>370</td><td>287</td><td>0.1003</td><td>3.05</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Wolframio (Tungsteno)</td><td>750</td><td>980</td><td>400</td><td>0.7031</td><td>0.98</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Molibdeno Puro</td><td>560</td><td>650</td><td>320</td><td>0.4900</td><td>3.15</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Intermetálico Ni3Al</td><td>300</td><td>600</td><td>178</td><td>0.2528</td><td>9.50</td><td>Plana</td></tr>
+                <tr><td class="c-fragil">Antimonio Puro</td><td>30</td><td>32</td><td>78</td><td>0.0058</td><td>0.02</td><td>Plana</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 8px;">
+            <h4 style="margin-top:0; color: #166534;">Análisis de Resiliencia</h4>
+            <p style="font-size: 0.85em; color: #166534; margin: 0;">Observe cómo materiales con alto $S_y$ y bajo $E$ (como el <strong>Titanio Grado 5</strong>) poseen una resiliencia excepcional, permitiéndoles absorber energía elástica masiva sin deformarse permanentemente.</p>
+        </div>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px;">
+            <h4 style="margin-top:0; color: #1e40af;">Paradoja de la Tenacidad</h4>
+            <p style="font-size: 0.85em; color: #1e40af; margin: 0;">Note que el <strong>Acero Inox 304L</strong>, a pesar de tener una resistencia menor que el Acero D2, es casi 100 veces más tenaz gracias a su capacidad de elongación plástica extrema.</p>
+        </div>
+    </div>
+</div>
+
+                <div id="t-7" class="theory-panel">
+    <h2>7. Fenomenología de la Estricción (Necking) e Inestabilidad</h2>
+    <p>Tras alcanzar el Esfuerzo Máximo Ingenieril ($S_u$), el material entra en una fase de inestabilidad tensil gobernada por el Criterio de Considère. La deformación plástica uniforme, que se distribuía a lo largo de toda la longitud calibrada ($L_0$), cesa catastróficamente. Físicamente, ocurre una concentración de deformación en un volumen localized de la probeta, dando inicio al fenómeno de estricción o "necking".</p>
+
+    <h3>7.1. Dinámica de la Formación del Cuello</h3>
+    <img src="https://3.bp.blogspot.com/-JUWtqlm5GhU/WKXB_XyAKwI/AAAAAAAABVY/JbnMAsJaw74kCWBApzCaSUGFj5iYod7hACLcB/s1600/probeta.PNG" alt="Animación de estricción y fractura localized" style="width:100%; max-width: 650px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>La animación superior ilustra de manera vívida este proceso dinámico. Se observa cómo una probeta inicialmente "sana" o uniforme comienza a adelgazarse de forma severa y localizada. En ese punto, el endurecimiento por deformación (acritud) ya no es suficiente para compensar la reducción de área transversal. Todo el estiramiento adicional se concentra en esa pequeña zona central hasta que la cohesión atómica falla, resultando en la fractura visible al final de la secuencia.</p>
+
+    <h3>7.2. Mapeo del Fenómeno en la Curva UTM</h3>
+    <img src="https://www.areatecnologia.com/materiales/imagenes/ensayo-de-traccion.jpg" alt="Máquina UTM, Curva y 3 Pasos del Espécimen" style="width:100%; max-width: 850px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>La integración visual superior es fundamental para el operador de la UTM. Muestra la Máquina Universal de Ensayos aplicando la carga. Crucialmente, mapea tres estados físicos de la probeta con puntos específicos en el Diagrama Esfuerzo-Deformación Ingenieril:</p>
+    <ul>
+        <li><strong>Estado 1 (Inicio):</strong> Probeta inicial con longitud calibrada uniforme.</li>
+        <li><strong>Estado 2 (UTS / $S_u$):</strong> Justo después del pico de esfuerzo, se forma el "cuello de botella". Es el momento en que la gráfica ingenieril comienza a "caer".</li>
+        <li><strong>Estado 3 (Fractura):</strong> El cuello se ha adelgazado al máximo y la probeta se separa en dos piezas.</li>
+    </ul>
+
+    <h3>7.3. Contraste en el Mundo Real</h3>
+    <img src="https://tse3.mm.bing.net/th/id/OIP.GJR3QG19ji0KjPrTs9vyRgHaCp?pid=Api&P=0&h=180" alt="Contraste real entre probeta inicial y probeta con estricción" style="width:100%; max-width: 850px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>En la imagen superior vemos el contraste físico real. La probeta superior es la geometría inicial (sana). La inferior es una probeta dúctil que ha sufrido deformación plástica extrema. Se deben notar dos cosas críticas: (1) El "cuello de botella" localizado es claramente visible y extremadamente delgado, y (2) La longitud total de la probeta inferior es significativamente mayor que la original, demostrando la deformación plástica permanente (ductilidad).</p>
+
+    <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 25px; border-radius: 12px; margin-top: 35px;">
+        <h3 style="margin-top:0; color: #b45309;"> Protocolo de Validación del Ensayo ASTM</h3>
+        <p style="font-size: 1em; color: #92400e; margin-bottom: 20px;">
+            Para que un ensayo de tracción bajo normas como ASTM E8/E8M sea considerado <strong>operativamente válido</strong> y sus datos sean confiables para la caracterización del material, se deben cumplir condiciones geométricas y físicas estrictas al momento de la estricción y fractura:
+        </p>
+        
+        <ul style="color: #92400e; line-height: 1.7; font-weight: 600;">
+            <li><strong>Ubicación Central de la Fractura:</strong> La fractura, y por ende la estricción que la precede, debe ocurrir exclusivamente <strong>dentro de la longitud calibrada central ($L_0$)</strong>, idealmente cerca de la mitad.</li>
+            <li><strong>Invalidez por Mordazas:</strong> Si la probeta se rompe cerca o dentro de las mordazas de agarre de la UTM, el ensayo es <strong>INTRÍNSECAMENTE INVÁLIDO</strong>. Esto se debe a que la restricción mecánica y los esfuerzos complejos triaxiales en los agarres alteran el estado de esfuerzos uniaxiales puro que el ensayo busca medir, falseando los datos de ductilidad y resistencia verdadera.</li>
+            <li><strong>Geometría de Probeta Estandarizada:</strong> Por ello, las probetas ASTM no son barras uniformes; poseen una **sección reducida** de diámetro constante en el centro, y extremos más gruesos para el agarre de las mordazas. Esta geometría está diseñada específicamente para forzar que el UTS, la estricción y la fractura ocurran en el centro calibrado, garantizando la validez termodinámica de los resultados.</li>
+        </ul>
+    </div>
+</div>
+
+                <div id="t-8" class="theory-panel">
+    <h2>8. Termodinámica: Resiliencia Unitaria ($U_r$)</h2>
+    <p>La <strong>resiliencia</strong> es la capacidad termodinámica de un material para absorber energía cuando se deforma elásticamente y cederla cuando se retira la carga. En ingeniería, este parámetro define la eficiencia de un material para actuar como un medio de almacenamiento de energía mecánica sin sufrir degradación microestructural o deformación permanente.</p>
+
+    <h3>8.1. ¿Por qué hablamos de Resiliencia "Unitaria"?</h3>
+    <p>En el simulador y en los reportes técnicos, el valor se expresa como <strong>Módulo de Resiliencia ($U_r$)</strong>. Se denomina "unitaria" porque está normalizada por el volumen del material. Esto nos permite comparar la capacidad energética de un acero frente a un aluminio independientemente del tamaño de la probeta que estemos ensayando.</p>
+    
+    <div class="math-box">
+        $$U_r = \text{Energía por unidad de volumen} \left( \frac{J}{m^3} \text{ o } MPa \right)$$
+    </div>
+
+    <h3>8.2. Derivación Matemática</h3>
+    <p>Puesto que la resiliencia es el área bajo la recta de Hooke, se calcula mediante la integral del esfuerzo respecto a la deformación hasta el límite elástico ($S_y$):</p>
+    
+    <div class="math-box">
+        $$U_r = \int_{0}^{\epsilon_y} \sigma \, d\epsilon = \int_{0}^{\epsilon_y} E\epsilon \, d\epsilon = \frac{1}{2} S_y \epsilon_y$$
+    </div>
+    
+    <p>Sustituyendo la Ley de Hooke ($\epsilon_y = S_y / E$), obtenemos la ecuación operativa que utiliza nuestro simulador:</p>
+    
+    <div class="math-box">
+        $$U_r = \frac{S_y^2}{2E}$$
+    </div>
+
+    <h3>8.3. Contraste de Materiales: Metales vs. Polímeros</h3>
+    <img src="https://tse3.mm.bing.net/th/id/OIP.s9Me2LpPJMSjhb8LX9B0wwHaDD?pid=Api&P=0&h=180" alt="Deformación elástica extrema en polímeros" style="width:100%; max-width: 600px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>Como se observa en la animación superior, los polímeros (elastómeros) poseen una resiliencia masiva comparada con los metales. Mientras que un metal industrial se deforma elásticamente menos del 1%, un polímero puede estirarse cientos de veces su tamaño y recuperar su forma. </p>
+    <ul>
+        <li><strong>En Metales:</strong> La resiliencia depende de la magnitud del $S_y$. Un acero templado tiene alta resiliencia porque tiene un límite elástico muy elevado.</li>
+        <li><strong>En Polímeros:</strong> La resiliencia depende de la flexibilidad de las cadenas moleculares. Pueden almacenar energía no por la fuerza de sus enlaces, sino por el cambio de entropía en sus cadenas.</li>
+    </ul>
+
+    <h3>8.4. Aplicación Industrial: ¿Para qué nos sirve?</h3>
+    <p>El interés de un ingeniero en este valor radica en el diseño de componentes que deben trabajar exclusivamente en el régimen elástico:</p>
+    <ul>
+        <li><strong>Resortes y Ballestas:</strong> Se buscan materiales con alto $U_r$ para que almacenen la mayor cantidad de energía posible sin deformarse (ej. aceros aleados con silicio).</li>
+        <li><strong>Amortiguación de Impactos:</strong> Herramientas que reciben golpes constantes deben tener alta resiliencia para devolver la energía del impacto en lugar de absorberla como daño interno.</li>
+        <li><strong>Bates de Béisbol o Pértigas:</strong> Dependen de la liberación rápida de la energía elástica acumulada ($U_r$) para transferir cantidad de movimiento.</li>
+    </ul>
+
+    <h3>8.5. ¿Cómo obtener la Energía Total (No unitaria)?</h3>
+    <p>Si necesitas saber cuántos <strong>Joules ($J$)</strong> totales absorbió tu probeta específica en el simulador, solo debes multiplicar el valor unitario por el volumen de la sección reducida del espécimen:</p>
+    
+    <div class="math-box">
+        $$U_{total} = U_r \cdot V_{calibrado}$$
+        $$U_{total} = U_r \cdot (A_0 \cdot L_0)$$
+    </div>
+    <p>Donde $A_0$ es el área inicial y $L_0$ la longitud calibrada según la norma ASTM seleccionada.</p>
+</div>
+
+                <div id="t-9" class="theory-panel">
+    <h2>9. Termodinámica: Tenacidad Estática ($U_t$)</h2>
+    <p>La <strong>Tenacidad Estática</strong> es la capacidad total de un material para absorber energía y deformarse plásticamente antes de alcanzar la fractura. A diferencia de la resiliencia (que solo contempla la energía elástica), la tenacidad integra toda la historia de deformación del material, siendo la propiedad que define la resistencia de una aleación a la propagación de grietas y al fallo catastrófico.</p>
+
+    <h3>9.1. Definición Matemática: El Área bajo la Curva</h3>
+    <img src="https://blog.laminasyaceros.com/hs-fs/hubfs/Diego_Hay/Tension%20metal/Laminas%20y%20aceros%20curvas%20de%20deformacion%20del%20acero.jpg?width=868&name=Laminas%20y%20aceros%20curvas%20de%20deformacion%20del%20acero.jpg" alt="Área bajo la curva esfuerzo-deformación" style="width:100%; max-width: 850px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>Físicamente, la tenacidad unitaria ($U_t$) corresponde al área total sombreada bajo la curva esfuerzo-deformación ingenieril desde el inicio de la carga hasta el instante de la fractura. Matemáticamente, se expresa como la integral:</p>
+    
+    <div class="math-box">
+        $$U_t = \int_{0}^{\epsilon_f} \sigma \, d\epsilon$$
+    </div>
+
+    <p>Para que un material sea altamente tenaz (como un acero estructural de bajo carbono), debe poseer un equilibrio óptimo entre dos propiedades opuestas:</p>
+    <ul>
+        <li><strong>Alta Resistencia ($S_y$, $S_u$):</strong> Para soportar cargas elevadas.</li>
+        <li><strong>Alta Ductilidad ($\epsilon_f$):</strong> Para deformarse plásticamente y "avisar" antes de romper.</li>
+    </ul>
+
+    <h3>9.2. Aplicación Industrial y Diseño de Seguridad</h3>
+    <img src="https://concepto.de/wp-content/uploads/2020/09/tenacidad-fisica-metales-e1600127525456.jpg" alt="Deformación de carrocería por impacto" style="width:100%; max-width: 700px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>En la industria automotriz y aeroespacial, la tenacidad es el parámetro de diseño más crítico para la supervivencia. Como se observa en la imagen superior, la carrocería de un vehículo está diseñada con materiales de alta tenacidad para que, ante un impacto, el metal se <strong>deforme masivamente sin fragmentarse</strong>.</p>
+    <p>Esta deformación plástica consume la energía del choque (la convierte en calor y movimiento de dislocaciones), evitando que dicha energía se transmita a los ocupantes. Un material no tenaz se quebraría como un vidrio, permitiendo que la energía del impacto destruya la cabina.</p>
+
+    <h3>9.3. La Falla de Materiales No Tenaces (Fragilidad)</h3>
+    <p>Los materiales con baja tenacidad presentan <strong>fractura frágil o por clivaje</strong>. Su peligro radica en tres factores:</p>
+    <ol>
+        <li><strong>Falta de aviso:</strong> Rompen súbitamente sin deformación previa visible.</li>
+        <li><strong>Velocidad de propagación:</strong> Una grieta en un material frágil puede viajar a velocidades cercanas a la del sonido.</li>
+        <li><strong>Baja absorción energética:</strong> Requieren muy poca energía para fallar, lo que los hace inaceptables para aplicaciones sujetas a cargas de impacto o fatiga.</li>
+    </ol>
+
+    <h3>9.4. Aproximación en Ingeniería</h3>
+    <p>Aunque el simulador utiliza integración numérica exacta, en el campo se suele usar una aproximación rápida para materiales dúctiles basada en el promedio de esfuerzos:</p>
+    
+    <div class="math-box">
+        $$U_t \approx \left( \frac{S_y + S_u}{2} \right) \cdot \epsilon_f$$
+    </div>
+
+    <p><strong>Interés del Ingeniero:</strong> Analizar la tenacidad permite predecir el comportamiento de una estructura bajo condiciones extremas (terremotos, choques, sobrecargas accidentales). Un material tenaz es un material "noble" que prefiere doblarse antes que romperse, salvando vidas y maquinaria.</p>
+</div>
+
+                <div id="t-10" class="theory-panel">
+    <h2>10. Micromecanismos y Topología de Fractura</h2>
+    <p>La fractura es la culminación del proceso de deformación, donde la integridad estructural se pierde mediante la creación de nuevas superficies. En metalurgia, el análisis de estas superficies (fractografía) nos permite determinar el camino de la grieta y el nivel de energía disipada durante el colapso.</p>
+
+    <h3>10.1. Fractura Dúctil: Coalescencia de Microhuecos (MVC)</h3>
+    <img src="https://punchlistzero.com/wp-content/uploads/2021/10/Ductile-Fracture.jpg" alt="Probeta con estricción y fractura dúctil" style="width:100%; max-width: 800px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>La fractura dúctil se caracteriza por una deformación plástica masiva previa al fallo. Como se observa en la imagen superior, el signo inequívoco es la formación de la <strong>estricción</strong>. A nivel microscópico, el mecanismo se denomina <strong>Nucleación, Crecimiento y Coalescencia de Microhuecos</strong>. Estos huecos se forman en segundas fases (inclusiones o carburos) y se expanden hasta que el metal entre ellos se desgarra.</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+        <div>
+            <img src="https://image.slidesharecdn.com/metalfracture-110704112054-phpapp01/95/metal-fracturemudaking-3-728.jpg?cb=1309779063" alt="Detalle de fractura Copa y Cono" style="width:100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-size: 0.9em; text-align: center;"><strong>Morfología de Copa y Cono:</strong> El centro falla por tensión pura (plano) y los bordes por cizalladura a 45° (labio de corte).</p>
+        </div>
+        <div>
+            <img src="https://image.slidesharecdn.com/07-160922004005/95/07-fracturas-45-638.jpg?cb=1474505884" alt="Tornillo fracturado por torsión" style="width:100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-size: 0.9em; text-align: center;"><strong>Variante por Torsión:</strong> Aunque es dúctil, la dirección de la carga cambia la topología a planos helicoidales.</p>
+        </div>
+    </div>
+
+    <h3>10.2. Fractura Frágil: Clivaje y Transgranularidad</h3>
+    <p>A diferencia de la dúctil, la fractura frágil ocurre con poca o nula deformación plástica. Es extremadamente peligrosa porque no hay "aviso" visual (estricción) y la grieta viaja a velocidades subsónicas.</p>
+    
+    <img src="https://blog.goldsupplier.com/wp-content/uploads/2024/06/Ductility-vs.-Brittleness-2.png" alt="Comparación Ductilidad vs Fragilidad en barras" style="width:100%; max-width: 800px; border-radius: 12px; margin: 30px auto; display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid var(--border);">
+    <p>En el contraste superior, la barra de la izquierda (dúctil) muestra un alargamiento y estrechamiento evidente. La de la derecha (frágil) mantiene su geometría original casi intacta hasta el plano de rotura, lo que indica que se absorbió muy poca energía.</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+        <div>
+            <img src="https://image.slidesharecdn.com/07-160922004005/95/07-fracturas-34-638.jpg?cb=1474505884" alt="Superficie de fractura frágil rugosa" style="width:100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-size: 0.9em; text-align: center;"><strong>Rugosidad Superficial:</strong> Refleja el paso de la grieta a través de los granos cristalinos (transgranular).</p>
+        </div>
+        <div>
+            <img src="https://image.slidesharecdn.com/07-160922004005/95/07-fracturas-28-638.jpg?cb=1474505884" alt="Estrías y marcas radiales en fractura frágil" style="width:100%; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-size: 0.9em; text-align: center;"><strong>Marcas Radiales:</strong> Indican el punto de origen de la grieta y la dirección de propagación (efecto Chevron).</p>
+        </div>
+    </div>
+
+    <h3>10.3. Resumen Comparativo de Topología</h3>
+    <table class="materials-table" style="font-size: 0.9em; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Característica</th>
+                <th>Fractura Dúctil</th>
+                <th>Fractura Frágil</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Deformación</strong></td>
+                <td>Masiva (Estricción evidente)</td>
+                <td>Mínima o nula</td>
+            </tr>
+            <tr>
+                <td><strong>Mecanismo</strong></td>
+                <td>Coalescencia de microhuecos</td>
+                <td>Clivaje (Separación de planos)</td>
+            </tr>
+            <tr>
+                <td><strong>Apariencia</strong></td>
+                <td>Mate, fibrosa (Copa-Cono)</td>
+                <td>Brillante, granular o estriada</td>
+            </tr>
+            <tr>
+                <td><strong>Energía</strong></td>
+                <td>Alta absorción (Tenaz)</td>
+                <td>Baja absorción (Peligrosa)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="background: #f1f5f9; border: 1px solid var(--border); padding: 25px; border-radius: 12px; margin-top: 35px;">
+        <h3 style="margin-top:0; color: var(--primary);"> El Análisis Forense en Ingeniería</h3>
+        <p style="font-size: 1em; color: #334155;">
+            Para que un ensayo de tracción sea válido, la fractura debe ocurrir dentro de la longitud calibrada. La presencia de <strong>estrías o marcas radiales</strong> (como en la última imagen) nos permite rastrear el fallo hasta el punto de origen, que suele ser una porosidad, una inclusión o una raya superficial que actuó como concentrador de esfuerzos. En el diseño de máquinas, entender estas morfologías es lo que permite evitar que un tornillo o un eje fallen catastróficamente en servicio.
+        </p>
+    </div>
+</div>
+
+            </div>
+        </div>
+        <footer>SimuMetalurgia © 2026 <br><br> Desarrollo: <span>Andrés Felipe Caro Miranda & José Gabriel Franco Correa</span>  |  Asesoría: <span>Pro. Ana Emilse Coy Echeverria & Prof. Carlos Andrés Galán Pinilla.</span></footer>
+    </div>
+
+    <div id="manual" class="section">
+        <div class="text-content">
+           <div class="text-content">
+    <h2 style="text-align: center; color: var(--primary); font-size: 2.5em; margin-bottom: 10px;">
+         Guía del Explorador: Tu Primer Ensayo de Tracción
+    </h2>
+    <p style="text-align: center; font-size: 1.2em; color: #475569; max-width: 800px; margin: 0 auto 40px auto;">
+        ¿Alguna vez has estirado una banda elástica o un chicle hasta que se rompe? Bueno, eso es exactamente lo que hace nuestra máquina, pero con <strong>toneladas de fuerza</strong> y metales industriales. ¡Bienvenido al laboratorio!
+    </p>
+
+    <hr style="border: 0; border-top: 1px solid var(--border); margin: 40px 0;">
+
+    <section style="margin-bottom: 50px;">
+        <h3 style="display: flex; align-items: center; gap: 15px; color: var(--primary);">
+            <span style="background: var(--primary); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8em;">1</span>
+            Elige tu "Víctima" (El Material)
+        </h3>
+        <p>No todos los metales se comportan igual. En el menú de la consola verás nombres raros, pero piénsalo así:</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 20px;">
+            <div style="background: #fffbeb; padding: 15px; border-radius: 12px; border: 1px solid #fef3c7;">
+                <strong> Como un Caramelo (Frágiles):</strong>
+                <p style="font-size: 0.9em;">Metales muy duros que no se estiran nada. Aguantan mucho, pero cuando fallan, explotan de repente sin avisar.</p>
+            </div>
+            <div style="background: #eff6ff; padding: 15px; border-radius: 12px; border: 1px solid #bfdbfe;">
+                <strong> Como el Chocolate (Dúctiles):</strong>
+                <p style="font-size: 0.9em;">Los aceros comunes. Se estiran un poco, se ponen "flacos" en el centro y luego se rompen. ¡Son los más usados!</p>
+            </div>
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px solid #bbf7d0;">
+                <strong> Como un Chicle (Puros):</strong>
+                <p style="font-size: 0.9em;">Metales muy blandos (como el oro o cobre puro). Se estiran muchísimo antes de finalmente rendirse.</p>
+            </div>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 50px;">
+        <h3 style="display: flex; align-items: center; gap: 15px; color: var(--primary);">
+            <span style="background: var(--primary); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8em;">2</span>
+            Ajusta las Dimensiones (El Diámetro)
+        </h3>
+        <p>Imagina que quieres romper un lápiz vs. romper un tronco de madera. Entre más grueso sea el <strong>Diámetro ($D$)</strong>, más fuerza necesitará la máquina para romperlo. En el simulador, el diámetro que elijas define qué tan "robusta" es la pieza que vamos a poner a prueba.</p>
+        <blockquote>
+            <strong> Dato curioso:</strong> Las normas (ASTM E8) son como las "reglas del juego". Dicen que la parte central de la probeta debe ser 4 o 5 veces más larga que su ancho para que el ensayo sea justo. ¡El simulador lo calcula por ti!
+        </blockquote>
+    </section>
+
+    <section style="margin-bottom: 50px;">
+        <h3 style="display: flex; align-items: center; gap: 15px; color: var(--primary);">
+            <span style="background: var(--primary); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8em;">3</span>
+            ¡Dale "Iniciar Ensayo" y observa!
+        </h3>
+        <p>Al darle clic a <strong>Iniciar Ensayo</strong>, verás cómo la máquina empieza a tirar del metal. Aquí es donde ocurre la magia en tres etapas:</p>
+        <ol style="line-height: 2;">
+            <li><strong>Zona Elástica (El Resorte):</strong> Al principio, si soltamos el metal, volvería a su forma original. Es como un resorte invisible.</li>
+            <li><strong>Zona Plástica (El Estirón):</strong> El metal se "rinde". Ya no volverá a ser el mismo. Empieza a estirarse de forma permanente.</li>
+            <li><strong>Estricción (El Cuello):</strong> Mira con atención el centro de la probeta en el simulador 3D. Se pondrá muy flaca, como un cuello de botella. ¡Eso significa que está a punto de morir!</li>
+        </ol>
+    </section>
+
+    <section style="background: var(--secondary); color: white; padding: 30px; border-radius: 16px; margin-top: 40px;">
+        <h3 style="color: #fff; margin-top: 0;"> Diccionario "Ingeniero - Humano"</h3>
+        <table style="width: 100%; color: #cbd5e1; border-collapse: collapse; margin-top: 15px;">
+            <tr style="border-bottom: 1px solid #334155;">
+                <td style="padding: 10px; font-weight: bold; color: white;">Esfuerzo ($\sigma$)</td>
+                <td style="padding: 10px;">Es la "presión" interna. Cuánta carga aguanta cada milímetro del metal.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #334155;">
+                <td style="padding: 10px; font-weight: bold; color: white;">Deformación ($\epsilon$)</td>
+                <td style="padding: 10px;">Qué tanto se estiró comparado con su tamaño original.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #334155;">
+                <td style="padding: 10px; font-weight: bold; color: white;">Módulo de Young ($E$)</td>
+                <td style="padding: 10px;">La "rigidez". Qué tan difícil es estirar el material cuando está en modo resorte.</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; font-weight: bold; color: white;">Tenacidad ($U_t$)</td>
+                <td style="padding: 10px;">Cuánta energía aguantó el metal antes de explotar. ¡Es como su barra de vida en un videojuego!</td>
+            </tr>
+        </table>
+    </section>
+
+    <div style="margin-top: 40px; text-align: center; background: #fff1f2; padding: 20px; border-radius: 12px; border: 2px dashed var(--accent);">
+        <h4 style="margin: 0; color: var(--accent);"> ¡Cuidado con la Fuerza!</h4>
+        <p style="margin-top: 10px; font-size: 0.95em;">Si le pones muy poquita fuerza a la máquina, el metal ni se enterará y no se romperá. Si le pones demasiada, la gráfica se saldrá de la pantalla. ¡Aprender a calibrar es parte de ser un buen metalurgista!</p>
+    </div>
+
+    <div style="margin-top: 40px; text-align: center; background: #fff1f2; padding: 20px; border-radius: 12px; border: 2px dashed var(--accent);">
+        <h4 style="margin: 0; color: var(--accent);"> ¡Aclaración importante!</h4>
+        <p style="margin-top: 10px; font-size: 0.95em;">Las gráficas en este módulo se generan en tiempo real conforme avanza el ensayo, emulando fielmente el comportamiento de una máquina UTM física. Si bien el simulador opera con datos técnicos reales de las aleaciones, la zona de fluencia ha sido sobredimensionada deliberadamente. Este ajuste pedagógico te permitirá observar y analizar con mayor precisión la transición elasto-plástica que, en condiciones reales, ocurre en una escala microscópica. <"/p>
+    </div>
+</div>
+        </div>
+        <footer>SimuMetalurgia © 2026 <br><br> Desarrollo: <span>Andrés Felipe Caro Miranda & José Gabriel Franco Correa</span>  |  Asesoría: <span>Pro. Ana Emilse Coy Echeverria & Prof. Carlos Andrés Galán Pinilla.</span></footer>
+    </div>
+</main>
+
+<script>
+    // 1. Navegación Principal (SPA)
+    function switchSection(sectionId) {
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.querySelectorAll('.nav-btn:not(.sim-btn)').forEach(btn => btn.classList.remove('active-btn'));
+        
+        const targetSection = document.getElementById(sectionId);
+        if(targetSection) {
+            targetSection.classList.add('active');
+            // Hacer scroll hasta el inicio de la página
+            document.querySelector('main').scrollTo({top: 0, behavior: 'smooth'}); 
+        }
+        
+        const activeBtn = document.getElementById('btn-' + sectionId);
+        if(activeBtn) activeBtn.classList.add('active-btn');
+    }
+
+    // 2. Navegación de Subsecciones (Pestañas de Teoría)
+    function openTheoryTab(tabId) {
+        // Asegurarnos de ir primero a la sección Teoría
+        switchSection('teoria');
+        
+        // Ocultar todos los paneles de teoría
+        document.querySelectorAll('.theory-panel').forEach(panel => panel.classList.remove('active-panel'));
+        document.querySelectorAll('.theory-nav-btn').forEach(btn => btn.classList.remove('active-sub'));
+        
+        // Mostrar el panel seleccionado
+        const targetPanel = document.getElementById(tabId);
+        const targetBtn = document.getElementById('btn-' + tabId);
+        
+        if(targetPanel && targetBtn) {
+            targetPanel.classList.add('active-panel');
+            targetBtn.classList.add('active-sub');
+            
+            // Hacer scroll hacia el inicio del contenido de teoría
+            setTimeout(() => {
+                document.querySelector('main').scrollTo({top: 0, behavior: 'smooth'});
+            }, 50);
+        }
+    }
+</script>
+</body>
+</html>
